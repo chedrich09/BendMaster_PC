@@ -22,7 +22,7 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      # Caching layer: Skips asset redownloads on subsequent pushes
+      # Caching optimization layer to drop compilation wait times down
       - name: Setup Gradle Build Cache Interceptor
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -37,26 +37,36 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Initialize Free Offline Native App
+      - name: Initialize Full-Screen Native App Project
         run: |
-          # 1. Setup Capacitor core build packages
+          # 1. Create a minimal fallback web folder required by the native compiler toolchain
+          mkdir -p www
+          echo '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="initial-scale=1, width=device-width, viewport-fit=cover"><title>Native Shell</title></head><body></body></html>' > www/index.html
+          
+          # 2. Setup Capacitor packages
           npm install @capacitor/core @capacitor/cli @capacitor/android
           
-          # 2. Configure Capacitor to target the offline asset pathing explicitly
+          # 3. Target the official Google AI Studio production route and name the app BenderMaster
           cat << 'EOF' > capacitor.config.json
           {
-            "appId": "com.mystudio.offlineapp",
-            "appName": "Offline Studio App",
+            "appId": "com.mystudio.nativeapp",
+            "appName": "BenderMaster",
             "webDir": "www",
             "server": {
-              "androidScheme": "http",
-              "hostname": "localhost",
-              "allowNavigation": ["localhost"]
+              "url": "https://google.com",
+              "cleartext": true,
+              "allowNavigation": [
+                "://google.com",
+                "*.google.com",
+                "*.gstatic.com",
+                "*.googleapis.com",
+                "://google.com"
+              ]
             }
           }
           EOF
 
-          # 3. Bootstrap the native Android build platform structure
+          # 4. Bootstrap the native Android build platform structure
           npx cap add android
 
       - name: Generate App Icon and Splash Screen
@@ -68,10 +78,50 @@ jobs:
             echo "Assets folder not found, skipping icon generation."
           fi
 
-      - name: Sync Web Code and Apply Configurations
+      - name: Force App Isolation (Lock Web Views Inside Container)
         run: |
-          # Copy your custom offline assets folder straight into the Android package
           npx cap sync android
+          
+          # Inject full-screen WebView Client intercept rules directly into the java application layer
+          TARGET_FILE="android/app/src/main/java/com/mystudio/nativeapp/MainActivity.java"
+          
+          cat << 'EOF' > $TARGET_FILE
+          package com.mystudio.nativeapp;
+
+          import android.os.Bundle;
+          import android.webkit.WebView;
+          import android.webkit.WebViewClient;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+              @Override
+              public void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  
+                  getWindow().getDecorView().post(new Runnable() {
+                      @Override
+                      public void run() {
+                          try {
+                              WebView webView = (WebView) getBridge().getWebView();
+                              webView.getSettings().setJavaScriptEnabled(true);
+                              webView.getSettings().setDomStorageEnabled(true);
+                              
+                              // Handle sub-domains and single-sign-on links seamlessly inside the app
+                              webView.setWebViewClient(new WebViewClient() {
+                                  @Override
+                                  public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                                      view.loadUrl(url);
+                                      return true;
+                                  }
+                              });
+                          } catch (Exception e) {
+                              e.printStackTrace();
+                          }
+                      }
+                  });
+              }
+          }
+          EOF
 
       - name: Resolve Kotlin Duplicate Class Conflicts
         run: |

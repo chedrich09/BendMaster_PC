@@ -22,35 +22,39 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Initialize Free Native App Project
+      - name: Initialize Free Offline Native App
         run: |
-          # 1. Create a minimal required web shell directory structure
-          mkdir www
-          echo '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="initial-scale=1, width=device-width, viewport-fit=cover"><title>Native Shell</title></head><body></body></html>' > www/index.html
-          
-          # 2. Setup Capacitor packages
+          # 1. Setup Capacitor core build packages
           npm install @capacitor/core @capacitor/cli @capacitor/android
           
-          # 3. Create the Capacitor native configuration mapping
+          # 2. Map Capacitor directly to your offline www folder (No external server URL)
           cat << 'EOF' > capacitor.config.json
           {
-            "appId": "com.mystudio.nativeapp",
-            "appName": "AI Studio App",
-            "webDir": "www",
-            "server": {
-              "url": "https://ai.studio/apps/978fcf50-f210-4bc5-aa9b-b8e29688d949?fullscreenApplet=true",
-              "cleartext": true
-            }
+            "appId": "com.mystudio.offlineapp",
+            "appName": "Offline Studio App",
+            "webDir": "www"
           }
           EOF
 
-          # 4. Bootstrap the native Android build platform structure
+          # 3. Bootstrap the native Android build platform structure
           npx cap add android
+
+      - name: Generate App Icon and Splash Screen
+        run: |
+          if [ -d "assets" ]; then
+            npm install @capacitor/assets --save-dev
+            npx capacitor-assets generate --android
+          else
+            echo "Assets folder not found, skipping icon generation."
+          fi
+
+      - name: Sync Web Code and Apply Configurations
+        run: |
+          # Copy your custom offline assets folder straight into the Android package
           npx cap sync android
 
       - name: Resolve Kotlin Duplicate Class Conflicts
         run: |
-          # Inject duplicate resolution strategy configurations directly into the app build grid
           cat << 'EOF' >> android/app/build.gradle
 
           configurations.all {

@@ -27,7 +27,7 @@ jobs:
           # 1. Setup Capacitor core build packages
           npm install @capacitor/core @capacitor/cli @capacitor/android
           
-          # 2. Map Capacitor directly to your offline www folder (No external server URL)
+          # 2. Map Capacitor directly to your offline www folder
           cat << 'EOF' > capacitor.config.json
           {
             "appId": "com.mystudio.offlineapp",

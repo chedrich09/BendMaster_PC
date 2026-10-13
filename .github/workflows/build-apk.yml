@@ -1,0 +1,37 @@
+name: Generate Web APK
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: # Allows you to run it manually
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Bubblewrap CLI
+        run: npm install -g @bubblewrap/cli
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Initialize and Build APK
+        run: |
+          bubblewrap init --manifest=https://ai.studio/apps/978fcf50-f210-4bc5-aa9b-b8e29688d949?fullscreenApplet=true --no-prompt
+          bubblewrap build --no-prompt
+
+      - name: Upload APK Asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-android-apk
+          path: ./*.apk

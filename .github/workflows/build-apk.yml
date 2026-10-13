@@ -20,7 +20,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '21' # Fixed: Bumped from 17 to 21 to match Gradle requirements
+          java-version: '21'
 
       - name: Initialize Free Native App Project
         run: |
@@ -47,6 +47,20 @@ jobs:
           # 4. Bootstrap the native Android build platform structure
           npx cap add android
           npx cap sync android
+
+      - name: Resolve Kotlin Duplicate Class Conflicts
+        run: |
+          # Inject duplicate resolution strategy configurations directly into the app build grid
+          cat << 'EOF' >> android/app/build.gradle
+
+          configurations.all {
+              resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+                  if (details.requested.group == 'org.jetbrains.kotlin' && details.requested.name.startsWith('kotlin-stdlib-jdk')) {
+                      details.useTarget("org.jetbrains.kotlin:kotlin-stdlib:${details.requested.version}")
+                  }
+              }
+          }
+          EOF
 
       - name: Compile Standalone Native APK
         run: |

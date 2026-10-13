@@ -22,12 +22,27 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
+      # Caching layer: Skips asset redownloads on subsequent pushes
+      - name: Setup Gradle Build Cache Interceptor
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: wrapper
+          cache-read-only: false
+
+      - name: Cache Node Modules
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
       - name: Initialize Free Offline Native App
         run: |
           # 1. Setup Capacitor core build packages
           npm install @capacitor/core @capacitor/cli @capacitor/android
           
-          # 2. Write a comprehensive configuration to allow secure native loading mechanics
+          # 2. Configure Capacitor to target the offline asset pathing explicitly
           cat << 'EOF' > capacitor.config.json
           {
             "appId": "com.mystudio.offlineapp",
@@ -75,7 +90,7 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --parallel --build-cache
 
       - name: Upload Native APK File
         uses: actions/upload-artifact@v4

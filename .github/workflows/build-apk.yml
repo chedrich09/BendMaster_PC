@@ -2,7 +2,7 @@ name: Generate Web APK
 on:
   push:
     branches: [ main ]
-  workflow_dispatch: # Allows you to run it manually
+  workflow_dispatch:
 
 jobs:
   build:
@@ -25,9 +25,14 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Pre-configure Bubblewrap Paths
+        run: |
+          mkdir -p ~/.bubblewrap
+          echo "{\"jdkPath\":\"${JAVA_HOME}\",\"androidSdkPath\":\"/usr/local/lib/android/sdk\"}" > ~/.bubblewrap/config.json
+
       - name: Initialize and Build APK
         run: |
-          bubblewrap init --manifest=https://ai.studio/apps/978fcf50-f210-4bc5-aa9b-b8e29688d949?fullscreenApplet=true --no-prompt
+          bubblewrap init --manifest="https://ai.studio/apps/978fcf50-f210-4bc5-aa9b-b8e29688d949?fullscreenApplet=true" --no-prompt
           bubblewrap build --no-prompt
 
       - name: Upload APK Asset

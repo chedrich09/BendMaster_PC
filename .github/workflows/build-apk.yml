@@ -27,12 +27,15 @@ jobs:
           # 1. Setup Capacitor core build packages
           npm install @capacitor/core @capacitor/cli @capacitor/android
           
-          # 2. Map Capacitor directly to your offline www folder
+          # 2. Write a clean configuration file that strips out all remote server mappings
           cat << 'EOF' > capacitor.config.json
           {
             "appId": "com.mystudio.offlineapp",
             "appName": "Offline Studio App",
-            "webDir": "www"
+            "webDir": "www",
+            "server": {
+              "allowNavigation": []
+            }
           }
           EOF
 
@@ -60,6 +63,7 @@ jobs:
           configurations.all {
               resolutionStrategy.eachDependency { DependencyResolveDetails details ->
                   if (details.requested.group == 'org.jetbrains.kotlin' && details.requested.name.startsWith('kotlin-stdlib-jdk')) {
+                      details.useTarget("org.jetbrains.kotlin:kotlin-stdlib:${details.requested.version}")
                       details.useTarget("org.jetbrains.kotlin:kotlin-stdlib:${details.requested.version}")
                   }
               }

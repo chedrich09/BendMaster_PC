@@ -30,9 +30,32 @@ jobs:
           mkdir -p ~/.bubblewrap
           echo "{\"jdkPath\":\"${JAVA_HOME}\",\"androidSdkPath\":\"/usr/local/lib/android/sdk\"}" > ~/.bubblewrap/config.json
 
-      - name: Initialize and Build APK
+      - name: Create Local Manifest and TWA Project
         run: |
-          bubblewrap init --manifest="https://ai.studio/apps/978fcf50-f210-4bc5-aa9b-b8e29688d949?fullscreenApplet=true" --no-prompt
+          # 1. Create a dummy web manifest file locally
+          cat << 'EOF' > manifest.json
+          {
+            "name": "My AI Studio App",
+            "short_name": "AI Studio App",
+            "start_url": "https://ai.studio/apps/978fcf50-f210-4bc5-aa9b-b8e29688d949?fullscreenApplet=true",
+            "display": "standalone",
+            "background_color": "#ffffff",
+            "theme_color": "#000000",
+            "icons": [
+              {
+                "src": "https://wikimedia.org",
+                "sizes": "512x512",
+                "type": "image/svg+xml"
+              }
+            ]
+          }
+          EOF
+
+          # 2. Tell Bubblewrap to initialize from our local manifest configuration
+          bubblewrap init --manifest=manifest.json --no-prompt
+
+      - name: Build APK
+        run: |
           bubblewrap build --no-prompt
 
       - name: Upload APK Asset

@@ -1,4 +1,4 @@
-name: Generate Web APK
+name: Generate Native Android APK
 on:
   push:
     branches: [ main ]
@@ -16,50 +16,46 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install Bubblewrap CLI
-        run: npm install -g @bubblewrap/cli
-
       - name: Setup Java JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Pre-configure Bubblewrap Paths
+      - name: Initialize Free Native App Project
         run: |
-          mkdir -p ~/.bubblewrap
-          echo "{\"jdkPath\":\"${JAVA_HOME}\",\"androidSdkPath\":\"/usr/local/lib/android/sdk\"}" > ~/.bubblewrap/config.json
-
-      - name: Create Local Manifest and TWA Project
-        run: |
-          # 1. Create a dummy web manifest file locally
-          cat << 'EOF' > manifest.json
+          # 1. Create a minimal required web shell directory structure
+          mkdir www
+          echo '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="initial-scale=1, width=device-width, viewport-fit=cover"><title>Native Shell</title></head><body></body></html>' > www/index.html
+          
+          # 2. Setup Capacitor packages
+          npm install @capacitor/core @capacitor/cli @capacitor/android
+          
+          # 3. Create the Capacitor native configuration mapping
+          cat << 'EOF' > capacitor.config.json
           {
-            "name": "My AI Studio App",
-            "short_name": "AI Studio App",
-            "start_url": "https://ai.studio/apps/978fcf50-f210-4bc5-aa9b-b8e29688d949?fullscreenApplet=true",
-            "display": "standalone",
-            "background_color": "#ffffff",
-            "theme_color": "#000000",
-            "icons": [
-              {
-                "src": "https://wikimedia.org",
-                "sizes": "512x512",
-                "type": "image/svg+xml"
-              }
-            ]
+            "appId": "com.mystudio.nativeapp",
+            "appName": "AI Studio App",
+            "webDir": "www",
+            "server": {
+              "url": "https://ai.studio/apps/978fcf50-f210-4bc5-aa9b-b8e29688d949?fullscreenApplet=true",
+              "cleartext": true
+            }
           }
           EOF
 
-          # 2. Tell Bubblewrap to initialize from our local manifest configuration
-          bubblewrap init --manifest=manifest.json --no-prompt
+          # 4. Bootstrap the native Android build platform structure
+          npx cap add android
+          npx cap sync android
 
-      - name: Build APK
+      - name: Compile Standalone Native APK
         run: |
-          bubblewrap build --no-prompt
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
-      - name: Upload APK Asset
+      - name: Upload Native APK File
         uses: actions/upload-artifact@v4
         with:
-          name: native-android-apk
-          path: ./*.apk
+          name: native-standalone-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk

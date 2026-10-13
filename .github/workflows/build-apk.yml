@@ -27,14 +27,16 @@ jobs:
           # 1. Setup Capacitor core build packages
           npm install @capacitor/core @capacitor/cli @capacitor/android
           
-          # 2. Write a clean configuration file that strips out all remote server mappings
+          # 2. Write a comprehensive configuration to allow secure native loading mechanics
           cat << 'EOF' > capacitor.config.json
           {
             "appId": "com.mystudio.offlineapp",
             "appName": "Offline Studio App",
             "webDir": "www",
             "server": {
-              "allowNavigation": []
+              "androidScheme": "http",
+              "hostname": "localhost",
+              "allowNavigation": ["localhost"]
             }
           }
           EOF
@@ -63,7 +65,6 @@ jobs:
           configurations.all {
               resolutionStrategy.eachDependency { DependencyResolveDetails details ->
                   if (details.requested.group == 'org.jetbrains.kotlin' && details.requested.name.startsWith('kotlin-stdlib-jdk')) {
-                      details.useTarget("org.jetbrains.kotlin:kotlin-stdlib:${details.requested.version}")
                       details.useTarget("org.jetbrains.kotlin:kotlin-stdlib:${details.requested.version}")
                   }
               }
